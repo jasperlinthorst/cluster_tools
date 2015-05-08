@@ -23,5 +23,5 @@ elif source.startswith('/grid/'):
 elif destination.startswith('/grid/'):
     cs.store_file(source,destination)
 else:
-    print "Grid path should start with grid:/"
+    print("Grid path should start with grid:/")
 

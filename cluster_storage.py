@@ -2,7 +2,7 @@ import subprocess, sys, getopt, time,shlex,shutil
 from subprocess import Popen
 import os
 import random
-import cPickle, zlib
+import pickle, zlib
 import filecmp
 import logging
 import time
@@ -55,7 +55,7 @@ class HighLevelStorage(object):
         @param id: Give a fixed id. 
         @param noreplace: if fixed id given, an file exists, return just id [default=False]
         """
-        data = zlib.compress(cPickle.dumps(object,protocol=2))
+        data = zlib.compress(pickle.dumps(object,protocol=2))
 
         local_filename = self.tmp_filename()
         f = open(local_filename,'w')
@@ -99,7 +99,7 @@ class HighLevelStorage(object):
             engine.store_file(source_filename, filename)
             try:
                 engine.replicate_all(filename)
-            except Exception, e:
+            except Exception as e:
                 pass
        
         id = self.attach_hash(id,hash)
@@ -115,18 +115,18 @@ class HighLevelStorage(object):
                 f = open(filename,'r')
                 data = f.read()
                 f.close()
-                object = cPickle.loads(zlib.decompress(data))
+                object = pickle.loads(zlib.decompress(data))
                 retry = 0
-            except Exception,e:
+            except Exception as e:
                 if filename is None or self.hash(id): #receive_file failed, or problem with unpickling. no point in retrying
                     import traceback
-                    raise RuntimeError, str(e) + " for file " + self.filename(id) + " with id " + str(id) + '\n' + str(traceback.format_exc())
+                    raise RuntimeError(str(e) + " for file " + self.filename(id) + " with id " + str(id) + '\n' + str(traceback.format_exc()))
                 #receive file did get data, but it might be corrupted. Lets retry
                 if os.path.isfile(filename):
                     os.remove(filename)
                 retry -= 1
                 if(retry == 0):
-                    raise RuntimeError, str(e) + " for file " + self.filename(id) + " with id " + str(id)
+                    raise RuntimeError(str(e) + " for file " + self.filename(id) + " with id " + str(id))
                 else:
                     logging.warning("Retry receive for file " + str(id))
 
@@ -153,12 +153,12 @@ class HighLevelStorage(object):
                 try:                
                     engine.retrieve_file(filename, tmpfile)
                     break
-                except Exception, e:
+                except Exception as e:
                     logging.warning("File " + self.filename(id) + " could not be retrieved by " + str(engine) + ". Falling back to next engine.")
                     last_error = e
             else:
                 if last_error is None:
-                    raise RuntimeError, "File " + self.filename(id) + " not found by any storage engines"
+                    raise RuntimeError("File " + self.filename(id) + " not found by any storage engines")
                 else:
                     raise e
 
@@ -169,7 +169,7 @@ class HighLevelStorage(object):
                     retry -= 1
                     os.remove(tmpfile)
                     if retry == 0:
-                        raise RuntimeError, "File " + self.filename(id) + " retrieved with wrong hash"
+                        raise RuntimeError("File " + self.filename(id) + " retrieved with wrong hash")
                     else:                        
                         logging.warning("Retry receive for file " + str(id))
             else:
@@ -186,7 +186,7 @@ class HighLevelStorage(object):
         for engine in self.engines:
             try:
                 engine.delete_file(filename)
-            except Exception, e:
+            except Exception as e:
                 logging.warning("Failed removal of " + self.filename(id) + " by " + str(engine) + " due to " + str(e))
 
 
@@ -219,15 +219,15 @@ def _robust_process(command,times=3,noerror=None, ignore=['no version informatio
                 if(noerror and noerror in err):
                     return False
                 else:
-		    have_ignore = False
-		    for ig in ignore :
-		    	if ig in err :
-				have_ignore = True
-				break
+                    have_ignore = False
+                    for ig in ignore :
+                        if ig in err :
+                            have_ignore = True
+                            break
                     if not have_ignore :
-		    	raise RuntimeError, err
+                        raise RuntimeError(err)
             retry = 0
-        except Exception,e:
+        except Exception as e:
             retry-=1
             if(retry == 0):
                 raise e
@@ -242,7 +242,7 @@ def _robust_func(func,times=3, *args, **kwargs):
         try:
             res = func(*args,**kwargs)
             retry = 0
-        except Exception,e:
+        except Exception as e:
             retry-=1
             if(retry == 0):
                 raise e
@@ -319,7 +319,7 @@ class ClusterStorageEngine(object):
             command1 = "lcg-infosites --vo lsgrid se"
             command2 = "grep -Po '\\b\\S+$'"
             command3 = "grep '\\.'"
-	    p1 = Popen(shlex.split(command1),stdout=subprocess.PIPE)
+            p1 = Popen(shlex.split(command1),stdout=subprocess.PIPE)
             p2 = Popen(shlex.split(command2),stdout=subprocess.PIPE,stdin=p1.stdout)
             storage_engines = _robust_process(command3,stdin=p2.stdout,times=1)
             storage_engines = set(storage_engines.split('\n'))
@@ -347,7 +347,7 @@ class ClusterStorageEngine(object):
     def store_file(self,filepath,cpath,check_equal=True):
         filepath = os.path.abspath(filepath)
         if(not os.path.isfile(filepath)):
-            raise AttributeError, "Filepath should be existing file"
+            raise AttributeError("Filepath should be existing file")
 
         fpath,fname = os.path.split(filepath)
 
@@ -372,12 +372,12 @@ class ClusterStorageEngine(object):
                     if not filecmp.cmp(filepath,test_filepath,shallow=False):
                         try:
                             self.delete_file(gridname)
-                        except Exception, e:
+                        except Exception as e:
                             pass
-                        raise RuntimeError, "Files unequal"
+                        raise RuntimeError("Files unequal")
                     os.remove(test_filepath)
                 retry = 0
-            except Exception, e:
+            except Exception as e:
                 retry -= 1
                 if(retry == 0):
                     raise e
@@ -413,10 +413,10 @@ class ClusterStorageEngine(object):
                
                 _robust_process(command)
                 retry = 0
-            except Exception, e:
+            except Exception as e:
                 retry -= 1
                 if(retry == 0):
-                    raise RuntimeError, str(e) + " on cpath " + cpath
+                    raise RuntimeError(str(e) + " on cpath " + cpath)
       
     def replicate_all(self,cpath):
         self.other_engines = _robust_func(self.get_other_storage_engines)
@@ -466,7 +466,7 @@ class ClusterStorageEngine(object):
                 retry = 0
         
         if(ncommands):
-            raise RuntimeError, "Failed replication with " + str(ncommands)
+            raise RuntimeError("Failed replication with " + str(ncommands))
 
 
     def is_file(self,cpath):
@@ -482,13 +482,13 @@ class ClusterStorageEngine(object):
 
 def create_highlevel(local_path, engine_params):
     storage_engines = []
-    for key, val in engine_params.iteritems():
+    for key, val in engine_params.items():
         if key == "cluster":
             e = ClusterStorageEngine()
         elif key == "local":
             e = LocalStorageEngine()
         else:
-            raise RuntimeError, "Unknown engine key: " + str(key)
+            raise RuntimeError("Unknown engine key: " + str(key))
 
         if val == "*":
             if key == "cluster":

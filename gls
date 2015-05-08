@@ -16,5 +16,5 @@ if not dir.startswith('/'):
 cs = cluster_storage.ClusterStorageEngine()
 l =  cs.list_dir(dir)
 for e in l:
-    print e
+    print(e)
 
