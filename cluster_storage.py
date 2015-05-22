@@ -214,7 +214,7 @@ def _robust_process(command,times=3,noerror=None, ignore=['no version informatio
     args = shlex.split(command)
     while(retry):
         try:
-            out,err = Popen(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE,**kwargs,universal_newlines=True).communicate()
+            out,err = Popen(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True,**kwargs).communicate()
             if (err) :
                 if(noerror and noerror in err):
                     return False
