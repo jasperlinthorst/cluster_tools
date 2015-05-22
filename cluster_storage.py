@@ -214,7 +214,7 @@ def _robust_process(command,times=3,noerror=None, ignore=['no version informatio
     args = shlex.split(command)
     while(retry):
         try:
-            out,err = Popen(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE,**kwargs).communicate()
+            out,err = Popen(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE,**kwargs,universal_newlines=True).communicate()
             if (err) :
                 if(noerror and noerror in err):
                     return False
@@ -319,8 +319,8 @@ class ClusterStorageEngine(object):
             command1 = "lcg-infosites --vo lsgrid se"
             command2 = "grep -Po '\\b\\S+$'"
             command3 = "grep '\\.'"
-            p1 = Popen(shlex.split(command1),stdout=subprocess.PIPE)
-            p2 = Popen(shlex.split(command2),stdout=subprocess.PIPE,stdin=p1.stdout)
+            p1 = Popen(shlex.split(command1),stdout=subprocess.PIPE,universal_newlines=True)
+            p2 = Popen(shlex.split(command2),stdout=subprocess.PIPE,stdin=p1.stdout,universal_newlines=True)
             storage_engines = _robust_process(command3,stdin=p2.stdout,times=1)
             storage_engines = set(storage_engines.split('\n'))
             storage_engines.discard('n.a')
@@ -432,7 +432,7 @@ class ClusterStorageEngine(object):
             processes = []
             for command in commands:
                 args = shlex.split(command)
-                processes.append((Popen(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE),command))
+                processes.append((Popen(args,stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True),command))
             start = time.time()
             if retry == 3:
                 times = []
